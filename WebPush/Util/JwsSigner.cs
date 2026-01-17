@@ -4,45 +4,39 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace WebPush.Util
+namespace WebPush.Util;
+
+internal class JwsSigner(byte[] privateKey) : IDisposable
 {
-    internal class JwsSigner : IDisposable
+    private readonly ECDsa _ecdsa = ECKeyHelper.GetPrivateKeyForSigning(privateKey);
+
+    /// <summary>
+    /// Generates a JWS Signature (ES256).
+    /// </summary>
+    public string GenerateSignature(Dictionary<string, object> header, Dictionary<string, object> payload)
     {
-        private readonly ECDsa _ecdsa;
+        var securedInput = SecureInput(header, payload);
+        var message = Encoding.UTF8.GetBytes(securedInput);
 
-        public JwsSigner(byte[] privateKey)
-        {
-            _ecdsa = ECKeyHelper.GetPrivateKeyForSigning(privateKey);
-        }
+        // SHA-256 hash + ECDSA sign
+        var hash = SHA256.HashData(message);
 
-        /// <summary>
-        /// Generates a JWS Signature (ES256).
-        /// </summary>
-        public string GenerateSignature(Dictionary<string, object> header, Dictionary<string, object> payload)
-        {
-            var securedInput = SecureInput(header, payload);
-            var message = Encoding.UTF8.GetBytes(securedInput);
+        // SignHash with IEEE P1363 format returns r||s directly (64 bytes for P-256)
+        var signature = _ecdsa.SignHash(hash, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
 
-            // SHA-256 hash + ECDSA sign
-            var hash = SHA256.HashData(message);
+        return $"{securedInput}.{UrlBase64.Encode(signature)}";
+    }
 
-            // SignHash with IEEE P1363 format returns r||s directly (64 bytes for P-256)
-            var signature = _ecdsa.SignHash(hash, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+    private static string SecureInput(Dictionary<string, object> header, Dictionary<string, object> payload)
+    {
+        var encodeHeader = UrlBase64.Encode(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(header)));
+        var encodePayload = UrlBase64.Encode(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload)));
 
-            return $"{securedInput}.{UrlBase64.Encode(signature)}";
-        }
+        return $"{encodeHeader}.{encodePayload}";
+    }
 
-        private static string SecureInput(Dictionary<string, object> header, Dictionary<string, object> payload)
-        {
-            var encodeHeader = UrlBase64.Encode(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(header)));
-            var encodePayload = UrlBase64.Encode(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload)));
-
-            return $"{encodeHeader}.{encodePayload}";
-        }
-
-        public void Dispose()
-        {
-            _ecdsa?.Dispose();
-        }
+    public void Dispose()
+    {
+        _ecdsa?.Dispose();
     }
 }

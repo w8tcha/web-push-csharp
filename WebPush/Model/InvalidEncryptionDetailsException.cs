@@ -1,15 +1,8 @@
 ﻿using System;
 
-namespace WebPush.Model
-{
-    public class InvalidEncryptionDetailsException : Exception
-    {
-        public InvalidEncryptionDetailsException(string message, PushSubscription pushSubscription)
-            : base(message)
-        {
-            PushSubscription = pushSubscription;
-        }
+namespace WebPush.Model;
 
-        public PushSubscription PushSubscription { get; }
-    }
+public class InvalidEncryptionDetailsException(string message, PushSubscription pushSubscription) : Exception(message)
+{
+    public PushSubscription PushSubscription { get; } = pushSubscription;
 }
