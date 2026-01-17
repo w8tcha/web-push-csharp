@@ -1,8 +1,8 @@
 <h1 align="center">web-push-csharp</h1>
 
 <p align="center">
-  <a href="https://github.com/web-push-libs/web-push-csharp/actions/workflows/CI.yml">
-    <img src="https://github.com/web-push-libs/web-push-csharp/actions/workflows/CI.yml/badge.svg" alt="CI Build" />	
+  <a href="https://github.com/w8tcha/web-push-csharp/actions/workflows/CI.yml">
+    <img src="https://github.com/w8tcha/web-push-csharp/actions/workflows/CI.yml/badge.svg" alt="CI Build" />	
   </a>
   <a href="https://www.nuget.org/packages/WebPush/">
     <img src="https://buildstats.info/nuget/WebPush" alt="Nuget Package Details" />
