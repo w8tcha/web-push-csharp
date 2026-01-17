@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Org.BouncyCastle.Crypto.Parameters;
 using WebPush.Util;
 
 namespace WebPush
@@ -12,16 +11,14 @@ namespace WebPush
         /// </summary>
         public static VapidDetails GenerateVapidKeys()
         {
-            var results = new VapidDetails();
+            var (publicKey, privateKey, ecdh) = ECKeyHelper.GenerateKeys();
+            ecdh.Dispose();
 
-            var keys = ECKeyHelper.GenerateKeys();
-            var publicKey = ((ECPublicKeyParameters) keys.Public).Q.GetEncoded(false);
-            var privateKey = ((ECPrivateKeyParameters) keys.Private).D.ToByteArrayUnsigned();
-
-            results.PublicKey = UrlBase64.Encode(publicKey);
-            results.PrivateKey = UrlBase64.Encode(ByteArrayPadLeft(privateKey, 32));
-
-            return results;
+            return new VapidDetails
+            {
+                PublicKey = UrlBase64.Encode(publicKey),
+                PrivateKey = UrlBase64.Encode(ByteArrayPadLeft(privateKey, 32))
+            };
         }
 
         /// <summary>
@@ -50,17 +47,15 @@ namespace WebPush
             }
             else
             {
-                ValidateExpiration(expiration);                
+                ValidateExpiration(expiration);
             }
 
 
-            var header = new Dictionary<string, object> {{"typ", "JWT"}, {"alg", "ES256"}};
+            var header = new Dictionary<string, object> { { "typ", "JWT" }, { "alg", "ES256" } };
 
-            var jwtPayload = new Dictionary<string, object> {{"aud", audience}, {"exp", expiration}, {"sub", subject}};
+            var jwtPayload = new Dictionary<string, object> { { "aud", audience }, { "exp", expiration }, { "sub", subject } };
 
-            var signingKey = ECKeyHelper.GetPrivateKey(decodedPrivateKey);
-
-            var signer = new JwsSigner(signingKey);
+            using var signer = new JwsSigner(decodedPrivateKey);
             var token = signer.GenerateSignature(header, jwtPayload);
 
             var results = new Dictionary<string, string>
@@ -152,7 +147,7 @@ namespace WebPush
         private static long UnixTimeNow()
         {
             var timeSpan = DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0);
-            return (long) timeSpan.TotalSeconds;
+            return (long)timeSpan.TotalSeconds;
         }
 
         private static byte[] ByteArrayPadLeft(byte[] src, int size)
